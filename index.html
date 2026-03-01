@@ -3866,36 +3866,33 @@
             }
         }
 
-
         async function downloadBackup() {
             toggleL(true);
+            const targetUrl = SCRIPT_URL + "?action=backupToExcel";
 
             try {
-                const response = await fetch(SCRIPT_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({
-                        action: "backupToExcel"
-                    })
-                });
+                const response = await fetch(targetUrl);
                 const r = await response.json();
 
-                // --- MULAI LOGIKA ASLI ANDA (TIDAK ADA PERUBAHAN) ---
                 toggleL(false);
                 if (r.success) {
                     const link = document.createElement("a");
                     link.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + r.content;
                     link.download = r.filename;
+                    document.body.appendChild(link);
                     link.click();
+                    document.body.removeChild(link);
                     Swal.fire('Berhasil', 'File Excel telah diunduh.', 'success');
                 } else {
                     Swal.fire('Gagal', 'Pesan: ' + r.msg, 'error');
                 }
-                // --- SELESAI LOGIKA ASLI ---
-
             } catch (err) {
                 toggleL(false);
-                console.error("Error:", err);
-                Swal.fire('Gagal', 'Tidak dapat terhubung ke server untuk mengunduh backup.', 'error');
+                console.warn("Fetch gagal (CORS), mencoba unduh langsung...");
+
+                // JIKA FETCH GAGAL, PAKSA UNDUH LANGSUNG
+                // Ini akan memicu browser untuk menangani proses download secara native
+                window.open(targetUrl, '_blank');
             }
         }
 
@@ -4854,119 +4851,119 @@
         // Di dalam fungsi renderLevelHybrid, pastikan bagian nomor memiliki spasi:
         // (Cukup pastikan class 'num-badge' sudah sesuai dengan CSS di atas)
 
-function renderLevelHybrid(parentId, gen, targetElement) {
-    var data = localAppData;
-    var children = data.filter(function (p) {
-        return String(p.nasab) === String(parentId) && p.relasi === 'D';
-    });
+        function renderLevelHybrid(parentId, gen, targetElement) {
+            var data = localAppData;
+            var children = data.filter(function (p) {
+                return String(p.nasab) === String(parentId) && p.relasi === 'D';
+            });
 
-    if (children.length === 0) return;
+            if (children.length === 0) return;
 
-    var idAktif = pathFokus.find(function (id) {
-        return children.some(function (c) { return String(c.id) === id; });
-    });
+            var idAktif = pathFokus.find(function (id) {
+                return children.some(function (c) { return String(c.id) === id; });
+            });
 
-    // KONDISI A: HEADER (Jalur yang sedang terbuka)
-    if (idAktif && data.some(function (p) { return String(p.nasab) === idAktif && p.relasi === 'D'; })) {
-        var item = data.find(function (p) { return String(p.id) === idAktif; });
-        var focusDiv = document.createElement("div");
-        focusDiv.className = "header-fokus-box";
+            // KONDISI A: HEADER (Jalur yang sedang terbuka)
+            if (idAktif && data.some(function (p) { return String(p.nasab) === idAktif && p.relasi === 'D'; })) {
+                var item = data.find(function (p) { return String(p.id) === idAktif; });
+                var focusDiv = document.createElement("div");
+                focusDiv.className = "header-fokus-box";
 
-        focusDiv.style.display = "flex";
-        focusDiv.style.flexDirection = "column";
-        focusDiv.style.alignItems = "center";
+                focusDiv.style.display = "flex";
+                focusDiv.style.flexDirection = "column";
+                focusDiv.style.alignItems = "center";
 
-        var thnHeader = "";
-        try { thnHeader = formatTahun(item); } catch (e) { thnHeader = ""; }
+                var thnHeader = "";
+                try { thnHeader = formatTahun(item); } catch (e) { thnHeader = ""; }
 
-        var uniqueSubId = "gen-box-" + item.id + "-" + gen;
+                var uniqueSubId = "gen-box-" + item.id + "-" + gen;
 
-        // 1. Ikon id-card dibuang
-        // 2. Nama diklik membuka Profil
-        // 3. Ikon minus diklik untuk handleDrillDown (menutup)
-        focusDiv.innerHTML =
-            '<div class="item-fokus d-flex align-items-center" style="width: max-content; gap: 8px;">' +
-            
-            // Ikon (-) untuk menutup/naik level
-            '<i class="fas fa-minus-circle text-primary me-2" style="cursor: pointer; font-size: 1.2rem;" onclick="handleDrillDown(\'' + item.id + '\', ' + gen + ')"></i>' +
+                // 1. Ikon id-card dibuang
+                // 2. Nama diklik membuka Profil
+                // 3. Ikon minus diklik untuk handleDrillDown (menutup)
+                focusDiv.innerHTML =
+                    '<div class="item-fokus d-flex align-items-center" style="width: max-content; gap: 8px;">' +
 
-            // Nama untuk buka profil
-            '<div style="line-height: 1.2; text-align: center; cursor: pointer;" onclick="event.stopPropagation(); bukaProfilSilsilah(\'' + item.id + '\')">' +
-            '<span class="fw-bold" style="font-size: 13px; display: block;">' + item.nama.toUpperCase() + '</span>' +
-            '<small class="text-normal" style="font-size:10px; display: block;">' + thnHeader + '</small>' +
-            '</div>' +
-            
-            '</div>' +
-            '<div class="line-v-path" style="margin: 0 auto; height: 30px; border-left: 2px solid #198754; width: 0;"></div>' +
-            '<div id="' + uniqueSubId + '" style="width: 100%;"></div>';
+                    // Ikon (-) untuk menutup/naik level
+                    '<i class="fas fa-minus-circle text-primary me-2" style="cursor: pointer; font-size: 1.2rem;" onclick="handleDrillDown(\'' + item.id + '\', ' + gen + ')"></i>' +
 
-        targetElement.appendChild(focusDiv);
+                    // Nama untuk buka profil
+                    '<div style="line-height: 1.2; text-align: center; cursor: pointer;" onclick="event.stopPropagation(); bukaProfilSilsilah(\'' + item.id + '\')">' +
+                    '<span class="fw-bold" style="font-size: 13px; display: block;">' + item.nama.toUpperCase() + '</span>' +
+                    '<small class="text-normal" style="font-size:10px; display: block;">' + thnHeader + '</small>' +
+                    '</div>' +
 
-        var nextTarget = focusDiv.querySelector("#" + uniqueSubId);
-        if (nextTarget) {
-            renderLevelHybrid(item.id, gen + 1, nextTarget);
-        }
+                    '</div>' +
+                    '<div class="line-v-path" style="margin: 0 auto; height: 30px; border-left: 2px solid #198754; width: 0;"></div>' +
+                    '<div id="' + uniqueSubId + '" style="width: 100%;"></div>';
 
-    } else {
-        // KONDISI B: LIST (Pilihan Keturunan)
-        var listWrapper = document.createElement("div");
-        listWrapper.className = "child-list-container-clean";
-        listWrapper.style.display = "flex";
-        listWrapper.style.flexDirection = "column";
-        listWrapper.style.alignItems = "center";
-        listWrapper.style.gap = "4px";
-        listWrapper.style.padding = "5px 0";
+                targetElement.appendChild(focusDiv);
 
-        children.forEach(function (item, index) {
-            var node = document.createElement("div");
-            node.style.width = "100%";
-            node.style.display = "flex";
-            node.style.justifyContent = "center";
-            node.style.marginBottom = "0px";
+                var nextTarget = focusDiv.querySelector("#" + uniqueSubId);
+                if (nextTarget) {
+                    renderLevelHybrid(item.id, gen + 1, nextTarget);
+                }
 
-            var punyaAnak = data.some(function (p) { return String(p.nasab) === String(item.id) && p.relasi === 'D'; });
-            var isSedangDiklik = pathFokus.indexOf(String(item.id)) !== -1;
-            var thnList = "";
-            try { thnList = formatTahun(item); } catch (e) { thnList = ""; }
-
-            var styleBg = isSedangDiklik ? 'border-color: #198754; background-color: #f8fffb !important;' : '';
-
-            // Render Item List
-            var contentHtml = '<div class="visual-nav-item shadow-sm d-flex align-items-center bg-white p-2 rounded border" style="width: 320px; ' + styleBg + '">';
-
-            // 1. Badge Angka
-            contentHtml += '<span class="num-badge" style="min-width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 10px; font-size: 11px; background-color: #eee; border-radius: 50%;">' + (index + 1) + '</span>';
-
-            // 2. Ikon (+/-) - Khusus untuk memicu Drill Down
-            var iconClass = "";
-            var iconColor = "";
-            if (punyaAnak) {
-                iconClass = isSedangDiklik ? 'fa-minus-circle' : 'fa-plus-circle';
-                iconColor = isSedangDiklik ? 'text-primary' : 'text-success';
             } else {
-                iconClass = 'fa-circle';
-                iconColor = 'text-normal';
+                // KONDISI B: LIST (Pilihan Keturunan)
+                var listWrapper = document.createElement("div");
+                listWrapper.className = "child-list-container-clean";
+                listWrapper.style.display = "flex";
+                listWrapper.style.flexDirection = "column";
+                listWrapper.style.alignItems = "center";
+                listWrapper.style.gap = "4px";
+                listWrapper.style.padding = "5px 0";
+
+                children.forEach(function (item, index) {
+                    var node = document.createElement("div");
+                    node.style.width = "100%";
+                    node.style.display = "flex";
+                    node.style.justifyContent = "center";
+                    node.style.marginBottom = "0px";
+
+                    var punyaAnak = data.some(function (p) { return String(p.nasab) === String(item.id) && p.relasi === 'D'; });
+                    var isSedangDiklik = pathFokus.indexOf(String(item.id)) !== -1;
+                    var thnList = "";
+                    try { thnList = formatTahun(item); } catch (e) { thnList = ""; }
+
+                    var styleBg = isSedangDiklik ? 'border-color: #198754; background-color: #f8fffb !important;' : '';
+
+                    // Render Item List
+                    var contentHtml = '<div class="visual-nav-item shadow-sm d-flex align-items-center bg-white p-2 rounded border" style="width: 320px; ' + styleBg + '">';
+
+                    // 1. Badge Angka
+                    contentHtml += '<span class="num-badge" style="min-width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-right: 10px; font-size: 11px; background-color: #eee; border-radius: 50%;">' + (index + 1) + '</span>';
+
+                    // 2. Ikon (+/-) - Khusus untuk memicu Drill Down
+                    var iconClass = "";
+                    var iconColor = "";
+                    if (punyaAnak) {
+                        iconClass = isSedangDiklik ? 'fa-minus-circle' : 'fa-plus-circle';
+                        iconColor = isSedangDiklik ? 'text-primary' : 'text-success';
+                    } else {
+                        iconClass = 'fa-circle';
+                        iconColor = 'text-normal';
+                    }
+
+                    contentHtml += '<i class="fas ' + iconClass + ' ' + iconColor + '" style="cursor: pointer; font-size: 1.2rem; margin-right: 12px; flex-shrink: 0;" onclick="handleDrillDown(\'' + item.id + '\', ' + gen + ')"></i>';
+
+                    // 3. Nama & Tahun - Khusus untuk Buka Profil
+                    contentHtml += '<div style="line-height: 1.2; flex-grow: 1; overflow: hidden; cursor: pointer;" onclick="event.stopPropagation(); bukaProfilSilsilah(\'' + item.id + '\')">' +
+                        '<span class="fw-bold" style="font-size: 12px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' +
+                        item.nama.toUpperCase() +
+                        '</span>' +
+                        '<small class="text-normal" style="font-size:10px; display: block;">' + thnList + '</small>' +
+                        '</div>';
+
+                    contentHtml += '</div>';
+                    node.innerHTML = contentHtml;
+                    listWrapper.appendChild(node);
+                });
+                targetElement.appendChild(listWrapper);
             }
-            
-            contentHtml += '<i class="fas ' + iconClass + ' ' + iconColor + '" style="cursor: pointer; font-size: 1.2rem; margin-right: 12px; flex-shrink: 0;" onclick="handleDrillDown(\'' + item.id + '\', ' + gen + ')"></i>';
 
-            // 3. Nama & Tahun - Khusus untuk Buka Profil
-            contentHtml += '<div style="line-height: 1.2; flex-grow: 1; overflow: hidden; cursor: pointer;" onclick="event.stopPropagation(); bukaProfilSilsilah(\'' + item.id + '\')">' +
-                '<span class="fw-bold" style="font-size: 12px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">' +
-                item.nama.toUpperCase() +
-                '</span>' +
-                '<small class="text-normal" style="font-size:10px; display: block;">' + thnList + '</small>' +
-                '</div>';
-
-            contentHtml += '</div>';
-            node.innerHTML = contentHtml;
-            listWrapper.appendChild(node);
-        });
-        targetElement.appendChild(listWrapper);
-    }
-
-    if (typeof showStats === 'function') { showStats(); }
-}
+            if (typeof showStats === 'function') { showStats(); }
+        }
 
         function handleDrillDown(id, gen) {
             const sId = String(id);
