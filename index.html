@@ -3868,40 +3868,58 @@
             }
         }
 
-         async function downloadBackup() {
-            toggleL(true);
-        
-            try {
-                // Ambil data JSON silsilah (Jalur 2)
-                const response = await fetch(SCRIPT_URL + "?type=json");
-                const dataSilsilah = await response.json(); 
-        
-                // CEK DATA: Jika dataSilsilah adalah Object, gunakan json_to_sheet
-                // Jika dataSilsilah adalah Array mentah, json_to_sheet juga tetap bisa menangani
-                let worksheet;
-                if (Array.isArray(dataSilsilah) && Array.isArray(dataSilsilah[0])) {
-                    // Jika formatnya: [["Header1", "Header2"], ["Isi1", "Isi2"]]
-                    worksheet = XLSX.utils.aoa_to_sheet(dataSilsilah);
-                } else {
-                    // Jika formatnya: [{"Nama": "A", "Usia": 30}, {"Nama": "B", "Usia": 25}]
-                    worksheet = XLSX.utils.json_to_sheet(dataSilsilah);
-                }
-        
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Data Silsilah");
-        
-                // DOWNLOAD LANGSUNG
-                XLSX.writeFile(workbook, "Backup_Silsilah_Lengkap.xlsx");
-        
-                toggleL(false);
-                Swal.fire('Berhasil', 'Excel (Semua Kolom) telah diunduh.', 'success');
-        
-            } catch (err) {
-                toggleL(false);
-                console.error("Detail Error:", err);
-                Swal.fire('Gagal', 'Pesan error: ' + err.message, 'error');
+async function downloadBackup() {
+    toggleL(true);
+
+    try {
+        const response = await fetch(SCRIPT_URL + "?type=json");
+        const result = await response.json(); 
+
+        // --- VALIDASI DATA (PENTING) ---
+        let dataFinal;
+
+        // 1. Jika data ada di dalam properti .data (Sering terjadi di GAS)
+        if (result.data && Array.isArray(result.data)) {
+            dataFinal = result.data;
+        } 
+        // 2. Jika data langsung berupa Array
+        else if (Array.isArray(result)) {
+            dataFinal = result;
+        } 
+        // 3. Jika data ada di dalam properti lain (misal .values atau .silsilah)
+        else {
+            // Cari properti mana yang isinya Array
+            const key = Object.keys(result).find(k => Array.isArray(result[k]));
+            if (key) {
+                dataFinal = result[key];
+            } else {
+                throw new Error("Format data tidak dikenali. Pastikan GAS mengirim Array.");
             }
         }
+
+        // --- PROSES KE EXCEL ---
+        const wb = XLSX.utils.book_new();
+        let ws;
+
+        // Cek apakah baris pertamanya adalah Array atau Object
+        if (Array.isArray(dataFinal[0])) {
+            ws = XLSX.utils.aoa_to_sheet(dataFinal);
+        } else {
+            ws = XLSX.utils.json_to_sheet(dataFinal);
+        }
+
+        XLSX.utils.book_append_sheet(wb, ws, "Silsilah");
+        XLSX.writeFile(wb, "Backup_Silsilah_Lengkap.xlsx");
+
+        toggleL(false);
+        Swal.fire('Berhasil', 'Excel berhasil diunduh.', 'success');
+
+    } catch (err) {
+        toggleL(false);
+        console.error("Struktur Data:", err);
+        Swal.fire('Gagal', 'Pesan: ' + err.message, 'error');
+    }
+}
 
         function updateProfile(el) { if (el.value) showDirect(el.value); }
 
