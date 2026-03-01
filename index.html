@@ -11,6 +11,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <style>
         :root {
             /* Color Palette */
@@ -3866,27 +3868,34 @@
             }
         }
 
-        function downloadBackup() {
-            // 1. Tampilkan loading (opsional)
+         async function downloadBackup() {
             toggleL(true);
         
-            // 2. Buat URL langsung ke jalur backup
-            const targetUrl = SCRIPT_URL + "?action=backupToExcel";
+            try {
+                // Ambil data lewat jalur JSON (Jalur 2) yang terbukti bisa ditembus GitHub
+                const response = await fetch(SCRIPT_URL + "?type=json");
+                
+                if (!response.ok) throw new Error("Gagal terhubung ke server Google.");
+                
+                const dataSilsilah = await response.json(); 
         
-            // 3. JALUR TEMBUS CORS: Gunakan window.open atau window.location
-            // Ini akan memerintahkan browser untuk langsung membuka link tersebut.
-            // Karena ini navigasi halaman, bukan AJAX/Fetch, CORS tidak akan memblokirnya.
-            const win = window.open(targetUrl, '_blank');
+                // Proses pembuatan file Excel di dalam memori Browser (HP/Laptop Anda)
+                const worksheet = XLSX.utils.aoa_to_sheet(dataSilsilah);
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Data Silsilah");
         
-            // 4. Matikan loading setelah jeda singkat
-            setTimeout(() => {
+                // PAKSA DOWNLOAD: Ini yang mencegah munculnya halaman penuh kode acak
+                const namaFile = "Backup_Silsilah_Lengkap.xlsx";
+                XLSX.writeFile(workbook, namaFile);
+        
                 toggleL(false);
-                if (win) {
-                    Swal.fire('Proses Dimulai', 'Memproses download dari server Google...', 'success');
-                } else {
-                    Swal.fire('Pop-up Diblokir', 'Mohon izinkan pop-up untuk mengunduh file.', 'warning');
-                }
-            }, 2000);
+                Swal.fire('Berhasil', 'File Excel telah diunduh ke folder Download.', 'success');
+        
+            } catch (err) {
+                toggleL(false);
+                console.error(err);
+                Swal.fire('Gagal', 'Pesan error: ' + err.message, 'error');
+            }
         }
 
         function updateProfile(el) { if (el.value) showDirect(el.value); }
