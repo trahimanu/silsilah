@@ -3866,34 +3866,27 @@
             }
         }
 
-        async function downloadBackup() {
+        function downloadBackup() {
+            // 1. Tampilkan loading (opsional)
             toggleL(true);
+        
+            // 2. Buat URL langsung ke jalur backup
             const targetUrl = SCRIPT_URL + "?action=backupToExcel";
-
-            try {
-                const response = await fetch(targetUrl);
-                const r = await response.json();
-
+        
+            // 3. JALUR TEMBUS CORS: Gunakan window.open atau window.location
+            // Ini akan memerintahkan browser untuk langsung membuka link tersebut.
+            // Karena ini navigasi halaman, bukan AJAX/Fetch, CORS tidak akan memblokirnya.
+            const win = window.open(targetUrl, '_blank');
+        
+            // 4. Matikan loading setelah jeda singkat
+            setTimeout(() => {
                 toggleL(false);
-                if (r.success) {
-                    const link = document.createElement("a");
-                    link.href = "data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64," + r.content;
-                    link.download = r.filename;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    Swal.fire('Berhasil', 'File Excel telah diunduh.', 'success');
+                if (win) {
+                    Swal.fire('Proses Dimulai', 'Memproses download dari server Google...', 'success');
                 } else {
-                    Swal.fire('Gagal', 'Pesan: ' + r.msg, 'error');
+                    Swal.fire('Pop-up Diblokir', 'Mohon izinkan pop-up untuk mengunduh file.', 'warning');
                 }
-            } catch (err) {
-                toggleL(false);
-                console.warn("Fetch gagal (CORS), mencoba unduh langsung...");
-
-                // JIKA FETCH GAGAL, PAKSA UNDUH LANGSUNG
-                // Ini akan memicu browser untuk menangani proses download secara native
-                window.open(targetUrl, '_blank');
-            }
+            }, 2000);
         }
 
         function updateProfile(el) { if (el.value) showDirect(el.value); }
