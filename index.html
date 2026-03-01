@@ -3872,28 +3872,33 @@
             toggleL(true);
         
             try {
-                // Ambil data lewat jalur JSON (Jalur 2) yang terbukti bisa ditembus GitHub
+                // Ambil data JSON silsilah (Jalur 2)
                 const response = await fetch(SCRIPT_URL + "?type=json");
-                
-                if (!response.ok) throw new Error("Gagal terhubung ke server Google.");
-                
                 const dataSilsilah = await response.json(); 
         
-                // Proses pembuatan file Excel di dalam memori Browser (HP/Laptop Anda)
-                const worksheet = XLSX.utils.aoa_to_sheet(dataSilsilah);
+                // CEK DATA: Jika dataSilsilah adalah Object, gunakan json_to_sheet
+                // Jika dataSilsilah adalah Array mentah, json_to_sheet juga tetap bisa menangani
+                let worksheet;
+                if (Array.isArray(dataSilsilah) && Array.isArray(dataSilsilah[0])) {
+                    // Jika formatnya: [["Header1", "Header2"], ["Isi1", "Isi2"]]
+                    worksheet = XLSX.utils.aoa_to_sheet(dataSilsilah);
+                } else {
+                    // Jika formatnya: [{"Nama": "A", "Usia": 30}, {"Nama": "B", "Usia": 25}]
+                    worksheet = XLSX.utils.json_to_sheet(dataSilsilah);
+                }
+        
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, "Data Silsilah");
         
-                // PAKSA DOWNLOAD: Ini yang mencegah munculnya halaman penuh kode acak
-                const namaFile = "Backup_Silsilah_Lengkap.xlsx";
-                XLSX.writeFile(workbook, namaFile);
+                // DOWNLOAD LANGSUNG
+                XLSX.writeFile(workbook, "Backup_Silsilah_Lengkap.xlsx");
         
                 toggleL(false);
-                Swal.fire('Berhasil', 'File Excel telah diunduh ke folder Download.', 'success');
+                Swal.fire('Berhasil', 'Excel (Semua Kolom) telah diunduh.', 'success');
         
             } catch (err) {
                 toggleL(false);
-                console.error(err);
+                console.error("Detail Error:", err);
                 Swal.fire('Gagal', 'Pesan error: ' + err.message, 'error');
             }
         }
